@@ -14,6 +14,7 @@ from api.views import (
     EventoOperacaoViewSet, DepartamentoEventoViewSet, EscalaPolicialViewSet,
     FrequenciaPolicialViewSet,
     PagamentoViewSet,
+    RelatorioComboioViewSet,
 )
 from api.views_auth import (
     login_view,
@@ -86,6 +87,9 @@ router.register(r'escalas', EscalaPolicialViewSet, basename='escala')
 
 # Frequência Operacional
 router.register(r'frequencias', FrequenciaPolicialViewSet, basename='frequencia')
+
+# Relatórios de Comboio
+router.register(r'relatorios-comboio', RelatorioComboioViewSet, basename='relatoriocomboio')
 
 urlpatterns = [
     path('', api_root, name='api-root'),  # View raiz

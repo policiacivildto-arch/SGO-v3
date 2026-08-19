@@ -707,3 +707,35 @@ class Feriado(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.data.strftime('%d/%m/%Y')})"
+
+
+class RelatorioComboio(models.Model):
+    """Relatório enviado por um policial referente a um comboio/operação"""
+    STATUS_CHOICES = (
+        ('enviado', 'Enviado'),
+        ('visualizado', 'Visualizado'),
+    )
+
+    titulo = models.CharField(max_length=255)
+    descricao = models.TextField(blank=True, null=True)
+    data_operacao = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='enviado')
+
+    policial = models.ForeignKey(Policial, on_delete=models.CASCADE, related_name='relatorios_comboio')
+    departamento = models.ForeignKey(Departamento, on_delete=models.SET_NULL, null=True, blank=True, related_name='relatorios_comboio')
+    delegacia = models.ForeignKey(Delegacia, on_delete=models.SET_NULL, null=True, blank=True, related_name='relatorios_comboio')
+    comboio = models.ForeignKey(Comboio, on_delete=models.SET_NULL, null=True, blank=True, related_name='relatorios')
+    operacao = models.ForeignKey(Operacao, on_delete=models.SET_NULL, null=True, blank=True, related_name='relatorios_comboio')
+
+    visualizado_por = models.ManyToManyField(User, related_name='relatorios_comboio_visualizados', blank=True)
+
+    enviado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-data_operacao', '-enviado_em']
+        verbose_name = 'Relatório de Comboio'
+        verbose_name_plural = 'Relatórios de Comboio'
+
+    def __str__(self):
+        return f"Relatório {self.titulo} - {self.policial.nome}"

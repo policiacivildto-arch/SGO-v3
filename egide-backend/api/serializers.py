@@ -10,7 +10,7 @@ from .models import (
     OperacaoPolicial, Alvo, EquipeOperacao, SubstitutoOperacao,
     ResultadoOperacao, AporteFinanceiro,
     EventoOperacao, DepartamentoEvento, EscalaPolicial,
-    Feriado, FrequenciaPolicial, Pagamento
+    Feriado, FrequenciaPolicial, Pagamento, RelatorioComboio
 )
 class PagamentoSerializer(serializers.ModelSerializer):
     policial_nome = serializers.CharField(source='policial.nome', read_only=True)
@@ -792,4 +792,22 @@ class FrequenciaPolicialSerializer(serializers.ModelSerializer):
             'substituto_matricula', 'registrado_por', 'criado_em', 'atualizado_em'
         ]
         read_only_fields = ['criado_em', 'atualizado_em']
+
+
+class RelatorioComboioSerializer(serializers.ModelSerializer):
+    policial_nome = serializers.CharField(source='policial.nome', read_only=True)
+    departamento_nome = serializers.CharField(source='departamento.nome', read_only=True, allow_null=True)
+    delegacia_nome = serializers.CharField(source='delegacia.nome', read_only=True, allow_null=True)
+    visualizado_por_count = serializers.IntegerField(source='visualizado_por.count', read_only=True)
+
+    class Meta:
+        model = RelatorioComboio
+        fields = [
+            'id', 'titulo', 'descricao', 'data_operacao', 'status',
+            'policial', 'policial_nome', 'departamento', 'departamento_nome',
+            'delegacia', 'delegacia_nome', 'comboio', 'operacao',
+            'visualizado_por', 'visualizado_por_count',
+            'enviado_em', 'atualizado_em',
+        ]
+        read_only_fields = ['policial', 'departamento', 'delegacia', 'visualizado_por', 'enviado_em', 'atualizado_em']
 

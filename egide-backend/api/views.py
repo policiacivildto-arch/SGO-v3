@@ -910,43 +910,32 @@ class FrequenciaPolicialViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def registrar_lote(self, request):
-        """Registra ou atualiza frequência de múltiplos policiais de uma equipe de uma vez"""
+        """Registra ou atualiza frequência de múltiplos policiais de uma equipe de uma vez
+        Ao confirmar presença, cria/atualiza registro em Pagamento para o policial/data/operacao."""
         registros = request.data.get('registros', [])
         if not registros:
             return Response({'error': 'Nenhum registro enviado.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ✅ Validar substitutos em batch
+        # Validar substitutos em batch
         substituto_ids = {reg.get('substituto') for reg in registros if reg.get('substituto')}
         substitutos_validos = set(Policial.objects.filter(id__in=substituto_ids).values_list('id', flat=True)) if substituto_ids else set()
-        
+
         resultados = []
         erros = []
-        frequencias_para_criar = []
-        frequencias_para_atualizar = []
         frequencias_presentes = []
 
-        # ✅ Processar cada registro
         for index, reg in enumerate(registros):
             self._processar_registro_frequencia(
-                index, reg, substitutos_validos, request,
-                frequencias_para_criar, frequencias_para_atualizar, frequencias_presentes,
-                resultados, erros
+                index, reg, substitutos_validos, request, resultados, erros, frequencias_presentes
             )
 
-        # ✅ Salvar em bulk
-        if frequencias_para_criar:
-            FrequenciaPolicial.objects.bulk_create(frequencias_para_criar, ignore_conflicts=True)
-        if frequencias_para_atualizar:
-            FrequenciaPolicial.objects.bulk_update(frequencias_para_atualizar, ['status', 'substituto_id', 'registrado_por'])
-
-        # ✅ Processar pagamentos
         if frequencias_presentes:
-            self._processar_pagamentos_lote(frequencias_presentes)
+            self._processar_pagamentos_lote(frequencias_presentes, erros)
 
         return Response({'registros': resultados, 'total': len(resultados), 'erros': erros})
 
-    def _processar_registro_frequencia(self, index, reg, substitutos_validos, request, frequencias_para_criar, frequencias_para_atualizar, frequencias_presentes, resultados, erros):
-        """Processa um registro individual de frequência"""
+    def _processar_registro_frequencia(self, index, reg, substitutos_validos, request, resultados, erros, frequencias_presentes):
+        """Processa e salva um registro individual de frequência (atômico, evita condição de corrida)"""
         equipe_id = reg.get('equipe')
         policial_id = reg.get('policial')
         data_operacao = reg.get('data_operacao')
@@ -958,72 +947,46 @@ class FrequenciaPolicialViewSet(viewsets.ModelViewSet):
             return
 
         if substituto_id and substituto_id not in substitutos_validos:
-            erros.append({'index': index, 'erro': f'Substituto inválido (id={substituto_id}).'})
+            erros.append({'index': index, 'erro': f'Substituto inválido (id={substituto_id}). Registro salvo sem substituto.'})
             substituto_id = None
 
         try:
-            obj = FrequenciaPolicial.objects.filter(
+            obj, _ = FrequenciaPolicial.objects.update_or_create(
                 equipe_id=equipe_id,
                 policial_id=policial_id,
-                data_operacao=data_operacao
-            ).first()
-            
-            if obj:
-                obj.status = status_freq
-                obj.substituto_id = substituto_id
-                obj.registrado_por = request.user if request.user.is_authenticated else None
-                frequencias_para_atualizar.append(obj)
-            else:
-                obj = FrequenciaPolicial(
-                    equipe_id=equipe_id,
-                    policial_id=policial_id,
-                    data_operacao=data_operacao,
-                    status=status_freq,
-                    substituto_id=substituto_id,
-                    registrado_por=request.user if request.user.is_authenticated else None,
-                )
-                frequencias_para_criar.append(obj)
-            
+                data_operacao=data_operacao,
+                defaults={
+                    'status': status_freq,
+                    'substituto_id': substituto_id,
+                    'registrado_por': request.user if request.user.is_authenticated else None,
+                }
+            )
+
             if status_freq.lower() == 'presente':
                 frequencias_presentes.append(obj)
-                
+
             resultados.append(FrequenciaPolicialSerializer(obj).data)
-            
+
         except Exception as exc:
             erros.append({'index': index, 'erro': f'Falha ao salvar frequência: {str(exc)}'})
 
-    
-    def _processar_pagamentos_lote(self, frequencias_presentes):
-        """Processa pagamentos para registros de presença confirmada (bulk)"""
-        from .models import Pagamento
-        
-        if not frequencias_presentes:
-            return
-
-        pagamentos_para_criar = []
-        pagamentos_para_atualizar = []
-        
+    def _processar_pagamentos_lote(self, frequencias_presentes, erros):
+        """Cria/atualiza pagamentos para registros de presença confirmada"""
         for obj in frequencias_presentes:
-            self._preparar_pagamento(obj, pagamentos_para_criar, pagamentos_para_atualizar)
-        
-        # ✅ Salvar pagamentos em bulk
-        if pagamentos_para_criar:
-            Pagamento.objects.bulk_create(pagamentos_para_criar, ignore_conflicts=True)
-        if pagamentos_para_atualizar:
-            Pagamento.objects.bulk_update(pagamentos_para_atualizar, ['horario_inicial', 'horario_final', 'valor_pago', 'observacao'])
+            self._preparar_pagamento(obj, erros)
 
-    def _preparar_pagamento(self, obj, pagamentos_para_criar, pagamentos_para_atualizar):
-        """Prepara um pagamento para ser salvo em bulk"""
+    def _preparar_pagamento(self, obj, erros):
+        """Cria ou atualiza o Pagamento correspondente a uma frequência confirmada"""
+        from .models import Pagamento
+
         try:
-            from .models import Pagamento
-            
             policial = obj.policial
             equipe = obj.equipe
             vaga = getattr(equipe, 'vaga', None)
             cargo = policial.cargo if policial else ''
             data_entrada = obj.data_operacao
             data_saida = obj.data_operacao
-            
+
             # Definir horários baseado no turno
             horario_inicial, horario_final = self._obter_horarios(vaga, data_entrada, data_saida)
 
@@ -1034,30 +997,22 @@ class FrequenciaPolicialViewSet(viewsets.ModelViewSet):
                 horario_final.timetz() if hasattr(horario_final, 'timetz') else horario_final.time(),
             )
 
-            # Verificar se existe pagamento
-            pagto = Pagamento.objects.filter(
+            Pagamento.objects.update_or_create(
                 policial_id=obj.policial_id,
-                data_operacao=data_entrada
-            ).first()
-            
-            if pagto:
-                pagto.horario_inicial = horario_inicial
-                pagto.horario_final = horario_final
-                pagto.valor_pago = valor_pago
-                pagto.observacao = ''
-                pagamentos_para_atualizar.append(pagto)
-            else:
-                pagamentos_para_criar.append(Pagamento(
-                    policial_id=obj.policial_id,
-                    data_operacao=data_entrada,
-                    horario_inicial=horario_inicial,
-                    horario_final=horario_final,
-                    valor_pago=valor_pago,
-                    observacao=''
-                ))
-        except Exception:
-            # Silenciar erros de pagamento - frequências já foram salvas
-            pass
+                data_operacao=data_entrada,
+                defaults={
+                    'horario_inicial': horario_inicial,
+                    'horario_final': horario_final,
+                    'valor_pago': valor_pago,
+                    'observacao': '',
+                }
+            )
+        except Exception as exc:
+            erros.append({
+                'policial_id': obj.policial_id,
+                'data_operacao': str(obj.data_operacao),
+                'erro': f'Falha ao gerar pagamento: {str(exc)}',
+            })
 
     def _obter_horarios(self, vaga, data_entrada, data_saida):
         """Obtém horários iniciais e finais baseado no turno"""
@@ -1076,7 +1031,7 @@ class FrequenciaPolicialViewSet(viewsets.ModelViewSet):
 
 class RelatorioComboioViewSet(viewsets.ModelViewSet):
     """ViewSet para gerenciar Relatórios de Comboio"""
-    queryset = None  # Será definido dinamicamente
+    queryset = RelatorioComboio.objects.all()
     serializer_class = RelatorioComboioSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -1093,7 +1048,6 @@ class RelatorioComboioViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Filtra relatórios baseado no papel do usuário"""
-        from .models import RelatorioComboio
         user = self.request.user
         queryset = RelatorioComboio.objects.select_related(
             'policial', 'departamento', 'delegacia', 'comboio', 'operacao'
@@ -1135,13 +1089,16 @@ class RelatorioComboioViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Associa o policial logado ao relatório"""
-        from .models import RelatorioComboio
-        policial = self.request.user.policial
-        
+        user = self.request.user
+        if not hasattr(user, 'policial'):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Apenas policiais podem criar relatórios de comboio.")
+        policial = user.policial
+
         # Captura departamento e delegacia do policial
         departamento = policial.delegacia.departamento if policial.delegacia else None
         delegacia = policial.delegacia
-        
+
         serializer.save(
             policial=policial,
             departamento=departamento,
@@ -1150,21 +1107,19 @@ class RelatorioComboioViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         """Permite atualização apenas do próprio relatório ou por admin"""
-        from .models import RelatorioComboio
         instance = self.get_object()
-        policial = self.request.user.policial
-        
+        user = self.request.user
+
         # Só o autor ou admin pode atualizar
-        if instance.policial != policial and not self.request.user.is_staff:
+        if not (user.is_staff or (hasattr(user, 'policial') and instance.policial == user.policial)):
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Você não tem permissão para atualizar este relatório")
-        
+
         serializer.save()
 
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def marcar_como_visualizado(self, request, pk=None):
         """Marca o relatório como visualizado pelo usuário logado"""
-        from .models import RelatorioComboio
         relatorio = self.get_object()
         relatorio.visualizado_por.add(request.user)
         return Response({'status': 'marcado como visualizado'})
