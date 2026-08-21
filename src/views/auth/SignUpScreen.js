@@ -33,16 +33,20 @@ export const SignUpScreen = ({ showNotification, setAuthScreen }) => {
 
         if (field === 'telefone') updatedData.telefone = formatTelefone(value);
         if (field === 'matricula') {
-            const formatted = formatMatricula(value);
-            updatedData.matricula = formatted;
-            // Tentar autocompletar nome e cargo a partir da base local
-            const encontrado = findPolicialByMatricula(formatted);
-            if (encontrado) {
-                updatedData.nome = encontrado.nome;
-                updatedData.cargo = encontrado.cargo;
-            }
+            updatedData.matricula = formatMatricula(value);
         }
         setFormData(updatedData);
+
+        if (field === 'matricula') {
+            const formatted = updatedData.matricula;
+            // Tentar autocompletar nome e cargo consultando o roster no backend
+            findPolicialByMatricula(formatted).then((encontrado) => {
+                if (!encontrado) return;
+                setFormData((prev) => (
+                    prev.matricula === formatted ? { ...prev, nome: encontrado.nome, cargo: encontrado.cargo } : prev
+                ));
+            });
+        }
     };
 
     const handleSignUp = async (e) => {

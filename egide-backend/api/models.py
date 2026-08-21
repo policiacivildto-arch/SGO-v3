@@ -103,6 +103,30 @@ class Policial(models.Model):
         return f"{self.nome} ({self.matricula})"
 
 
+class RosterPolicial(models.Model):
+    """
+    Cadastro-base de matrícula/nome/cargo do efetivo, usado apenas para
+    autocompletar formulários (cadastro, escalas) pela matrícula antes de
+    o policial ter uma conta (Policial) no sistema.
+
+    Diferente de Policial, não exige usuário vinculado. Consultado apenas
+    por matrícula exata via API pública somente-leitura — nunca listado
+    em massa, para não reexpor o cadastro completo do efetivo.
+    """
+    matricula = models.CharField(max_length=8, unique=True, db_index=True)
+    nome = models.CharField(max_length=255)
+    cargo = models.CharField(max_length=100, blank=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['nome']
+        verbose_name = 'Policial do Roster'
+        verbose_name_plural = 'Policiais do Roster'
+
+    def __str__(self):
+        return f"{self.nome} ({self.matricula})"
+
+
 class Pagamento(models.Model):
     policial = models.ForeignKey('Policial', on_delete=models.CASCADE, related_name='pagamentos')
     data_operacao = models.DateField()

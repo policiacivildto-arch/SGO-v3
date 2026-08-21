@@ -5,7 +5,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.db import transaction
 from .models import (
-    Departamento, Delegacia, Policial, Viatura, Vaga,
+    Departamento, Delegacia, Policial, RosterPolicial, Viatura, Vaga,
     Equipe, Operacao, Comboio,
     OperacaoPolicial, Alvo, EquipeOperacao, SubstitutoOperacao,
     ResultadoOperacao, AporteFinanceiro,
@@ -59,6 +59,12 @@ class PolicialSerializer(serializers.ModelSerializer):
         model = Policial
         fields = ['id', 'usuario', 'matricula', 'nome', 'classe', 'cargo', 'delegacia', 'delegacia_nome', 'telefone', 'email', 'ativo', 'criado_em', 'atualizado_em']
         read_only_fields = ['criado_em', 'atualizado_em']
+
+
+class RosterPolicialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RosterPolicial
+        fields = ['matricula', 'nome', 'cargo']
 
 
 class ViaturaSerializer(serializers.ModelSerializer):

@@ -24,6 +24,7 @@ from api.views_auth import (
     password_reset_view,
     password_reset_confirm_view,
 )
+from api.views_roster import roster_lookup_view
 
 def api_root(request):
     """View raiz da API com informações sobre endpoints disponíveis"""
@@ -38,6 +39,7 @@ def api_root(request):
                 'departamentos': '/api/departamentos/',
                 'delegacias': '/api/delegacias/',
                 'policiais': '/api/policiais/',
+                'roster_buscar': '/api/roster/buscar/?matricula=...',
                 'viaturas': '/api/viaturas/',
                 'vagas': '/api/vagas/',
                 'equipes': '/api/equipes/',
@@ -104,4 +106,6 @@ urlpatterns = [
     path('api/auth/me/', me_view, name='me'),
     path('api/auth/password-reset/', password_reset_view, name='password_reset'),
     path('api/auth/password-reset-confirm/', password_reset_confirm_view, name='password_reset_confirm'),
+    # Autocompletar de matrícula (roster), usado em cadastro/escalas
+    path('api/roster/buscar/', roster_lookup_view, name='roster_lookup'),
 ]

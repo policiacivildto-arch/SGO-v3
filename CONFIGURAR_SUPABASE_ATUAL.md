@@ -1,9 +1,16 @@
 # 🔧 CONFIGURAR SEU PROJETO SUPABASE
 
+> ⚠️ **Projeto antigo desativado.** Este guia apontava para o projeto
+> `urjluzeuifwjpwfjvkva` (região `us-west-2`, EUA), que está **inativo**
+> e não deve ser usado. O projeto atual do SGO-v3 é o `lwunytjedcwcttkujctl`,
+> hospedado em São Paulo (`sa-east-1`) — mais adequado para dados
+> operacionais da Polícia Civil do Ceará.
+
 ## 📍 Seu Projeto:
 ```
-ID: urjluzeuifwjpwfjvkva
-URL: https://supabase.com/dashboard/project/urjluzeuifwjpwfjvkva
+ID: lwunytjedcwcttkujctl
+Região: sa-east-1 (São Paulo)
+URL: https://supabase.com/dashboard/project/lwunytjedcwcttkujctl
 ```
 
 ---
@@ -11,7 +18,7 @@ URL: https://supabase.com/dashboard/project/urjluzeuifwjpwfjvkva
 ## 📋 PASSO 1: Obter DATABASE_URL
 
 1. **Acesse seu projeto Supabase**
-   - https://supabase.com/dashboard/project/urjluzeuifwjpwfjvkva
+   - https://supabase.com/dashboard/project/lwunytjedcwcttkujctl
 
 2. **Vá para Settings (⚙️)**
    - Menu esquerdo → **Settings**
@@ -27,15 +34,18 @@ URL: https://supabase.com/dashboard/project/urjluzeuifwjpwfjvkva
 
    **Connection pooling (porta 6543) - Para aplicação:**
    ```
-   postgresql://postgres.urjluzeuifwjpwfjvkva:[YOUR-PASSWORD]@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+   postgresql://postgres.lwunytjedcwcttkujctl:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
    ```
 
    **Direct connection (porta 5432) - Para migrações:**
    ```
-   postgresql://postgres.urjluzeuifwjpwfjvkva:[YOUR-PASSWORD]@aws-0-us-west-2.pooler.supabase.com:5432/postgres
+   postgresql://postgres.lwunytjedcwcttkujctl:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
    ```
 
    ⚠️ **Substitua `[YOUR-PASSWORD]` pela senha do seu banco!**
+   ⚠️ **Confira o host exato em Settings → Database no dashboard** —
+   o padrão `aws-0-sa-east-1.pooler.supabase.com` é o esperado para a
+   região São Paulo, mas o Supabase pode ajustar isso por projeto.
 
 ---
 
@@ -50,14 +60,14 @@ URL: https://supabase.com/dashboard/project/urjluzeuifwjpwfjvkva
 
 ## 📝 COPIAR ESSAS INFORMAÇÕES:
 
-**Você precisará para o Render:**
+**Você precisará para o Render/Railway/Codespaces:**
 
 ```
 # URL com pooling - para a aplicação rodar
-DATABASE_URL=postgresql://postgres.urjluzeuifwjpwfjvkva:[SENHA]@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true
+DATABASE_URL=postgresql://postgres.lwunytjedcwcttkujctl:[SENHA]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 
 # URL direta - para executar migrações
-DIRECT_URL=postgresql://postgres.urjluzeuifwjpwfjvkva:[SENHA]@aws-0-us-west-2.pooler.supabase.com:5432/postgres
+DIRECT_URL=postgresql://postgres.lwunytjedcwcttkujctl:[SENHA]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
 
 SECRET_KEY=[Gere em https://djecrety.ir/]
 
@@ -69,6 +79,9 @@ ALLOWED_HOSTS=.onrender.com
 **📌 Importante:**
 - `DATABASE_URL` usa porta **6543** com pooling (melhor performance)
 - `DIRECT_URL` usa porta **5432** direta (necessária para `python manage.py migrate`)
+- **Nunca** commite esses valores no repositório — configure-os como
+  variável/secret do ambiente de deploy (Render, Railway, Codespaces
+  Secrets etc.), nunca em um arquivo versionado.
 
 ---
 
@@ -94,8 +107,8 @@ ALLOWED_HOSTS=.onrender.com
 
 4. **Adicione Environment Variables:**
    ```
-   DATABASE_URL = postgresql://postgres.urjluzeuifwjpwfjvkva:[SENHA]@aws-0-us-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true
-   DIRECT_URL = postgresql://postgres.urjluzeuifwjpwfjvkva:[SENHA]@aws-0-us-west-2.pooler.supabase.com:5432/postgres
+   DATABASE_URL = postgresql://postgres.lwunytjedcwcttkujctl:[SENHA]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
+   DIRECT_URL = postgresql://postgres.lwunytjedcwcttkujctl:[SENHA]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
    SECRET_KEY = [Gere em https://djecrety.ir/]
    DEBUG = False
    ALLOWED_HOSTS = .onrender.com
