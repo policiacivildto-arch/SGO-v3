@@ -153,6 +153,7 @@ export default function App() {
         if (hasCheckedAuthRef.current) return;
         hasCheckedAuthRef.current = true;
         checkAuth();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const handleLogout = async () => {

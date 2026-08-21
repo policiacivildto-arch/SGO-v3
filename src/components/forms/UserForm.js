@@ -11,14 +11,16 @@ import { findPolicialByMatricula } from '../../constants/policiais';
         const updatedData = { ...formData, [field]: value };
         if (field === 'departamento') updatedData.delegacia = '';
         if (field === 'telefone') updatedData.telefone = formatTelefone(value);
-        if (field === 'matricula') {
-            const found = findPolicialByMatricula(value);
-            if (found) {
-                updatedData.nome = found.nome;
-                updatedData.cargo = found.cargo;
-            }
-        }
         setFormData(updatedData);
+
+        if (field === 'matricula') {
+            findPolicialByMatricula(value).then((found) => {
+                if (!found) return;
+                setFormData((prev) => (
+                    prev.matricula === value ? { ...prev, nome: found.nome, cargo: found.cargo } : prev
+                ));
+            });
+        }
     };
     const handleSubmit = (e) => { e.preventDefault(); onSave(formData); };
     return (

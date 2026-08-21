@@ -210,7 +210,7 @@ class EquipeSerializerWeeklyLimitTests(TestCase):
         self.assertIn('só pode se candidatar uma vez por semana', str(exc.exception))
 
     def test_bloqueia_preenchimento_de_vaga_diurna_por_nao_admin(self):
-        vaga_diurna = self._create_vaga(self.delegacia_multi_a, '2026-03-24', 'day')
+        vaga_diurna = self._create_vaga(self.delegacia_multi_a, '2026-03-23', 'day')
 
         serializer = self._build_serializer(
             self.policial_multi_user,
@@ -263,7 +263,7 @@ class EquipeSerializerWeeklyLimitTests(TestCase):
         self.assertIn('só pode se candidatar uma vez por semana', str(exc.exception))
 
     def test_permite_preenchimento_de_vaga_diurna_por_admin(self):
-        vaga_diurna = self._create_vaga(self.delegacia_multi_a, '2026-03-24', 'day')
+        vaga_diurna = self._create_vaga(self.delegacia_multi_a, '2026-03-23', 'day')
 
         serializer = self._build_serializer(
             self.admin_user,

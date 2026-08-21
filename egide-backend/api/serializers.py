@@ -5,7 +5,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.db import transaction
 from .models import (
-    Departamento, Delegacia, Policial, Viatura, Vaga,
+    Departamento, Delegacia, Policial, RosterPolicial, Viatura, Vaga,
     Equipe, Operacao, Comboio,
     OperacaoPolicial, Alvo, EquipeOperacao, SubstitutoOperacao,
     ResultadoOperacao, AporteFinanceiro,
@@ -59,6 +59,12 @@ class PolicialSerializer(serializers.ModelSerializer):
         model = Policial
         fields = ['id', 'usuario', 'matricula', 'nome', 'classe', 'cargo', 'delegacia', 'delegacia_nome', 'telefone', 'email', 'ativo', 'criado_em', 'atualizado_em']
         read_only_fields = ['criado_em', 'atualizado_em']
+
+
+class RosterPolicialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RosterPolicial
+        fields = ['matricula', 'nome', 'cargo']
 
 
 class ViaturaSerializer(serializers.ModelSerializer):
@@ -200,14 +206,19 @@ class EquipeSerializer(serializers.ModelSerializer):
     def _user_is_admin(self):
         request = self.context.get('request')
         user = getattr(request, 'user', None)
-        # Use is_staff (Django's native admin flag) instead of non-existent perfil.is_admin
-        return bool(user and user.is_authenticated and user.is_staff)
+        if not user or not user.is_authenticated:
+            return False
+
+        # Superuser/staff do Django sempre conta como admin.
+        if user.is_staff or user.is_superuser:
+            return True
+
+        # Papel de admin definido pela própria aplicação (PerfilPolicial.tipo).
+        perfil = self._get_request_profile()
+        return bool(perfil and perfil.tipo == 'admin')
 
     def _user_can_bypass_single_delegacia_weekly_limit(self):
-        request = self.context.get('request')
-        user = getattr(request, 'user', None)
-        # Allow staff/admin or superuser to bypass the limit
-        return bool(user and user.is_authenticated and (user.is_staff or user.is_superuser))
+        return self._user_is_admin()
 
 
     def _department_requires_weekly_limit(self, departamento):

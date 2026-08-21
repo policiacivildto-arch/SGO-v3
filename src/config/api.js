@@ -33,6 +33,7 @@ const isPublicAuthEndpoint = (endpoint = '') => {
     '/auth/register/',
     '/auth/password-reset/',
     '/auth/password-reset-confirm/',
+    '/roster/buscar/',
   ];
 
   return publicAuthPrefixes.some((prefix) => endpoint.startsWith(prefix));
@@ -377,6 +378,22 @@ class DjangoApiClient {
 
   async getPolicial(id) {
     return this.getDetail('policiais', id);
+  }
+
+  /**
+   * Autocompletar de matrícula: consulta pública (sem exigir login) do
+   * roster de matricula/nome/cargo. Retorna null quando não encontrada.
+   */
+  async buscarNoRoster(matricula) {
+    const queryString = new URLSearchParams({ matricula }).toString();
+    try {
+      return await this.request('GET', `/roster/buscar/?${queryString}`);
+    } catch (error) {
+      if (error.status === 404) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   async createPolicial(data) {

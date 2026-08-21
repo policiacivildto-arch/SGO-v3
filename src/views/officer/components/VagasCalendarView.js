@@ -574,11 +574,6 @@ export const RegistrationForm = ({ vaga, user, onSubmit, onCancel, showNotificat
 
                     if (resolvedDepartamento) updatedMember.departamento = resolvedDepartamento;
                     if (resolvedDelegacia) updatedMember.delegacia = resolvedDelegacia;
-                } else {
-                    const found = findPolicialByMatricula(normalizedMatricula);
-                    if (found?.nome) {
-                        updatedMember.nome = found.nome;
-                    }
                 }
             }
             if (field === 'telefone') updatedMember.telefone = formatTelefone(value);
@@ -589,6 +584,22 @@ export const RegistrationForm = ({ vaga, user, onSubmit, onCancel, showNotificat
 
         if (field === 'matricula') {
             restoreMatriculaInputFocus(index);
+
+            const normalizedMatricula = normalizeMatriculaDigits(formatMatricula(value));
+            if (!policiaisByMatricula.get(normalizedMatricula)) {
+                findPolicialByMatricula(normalizedMatricula).then((found) => {
+                    if (!found?.nome) return;
+                    setTeam((prevTeam) => {
+                        const currentMember = prevTeam[index];
+                        if (!currentMember || normalizeMatriculaDigits(currentMember.matricula) !== normalizedMatricula) {
+                            return prevTeam;
+                        }
+                        const newTeam = [...prevTeam];
+                        newTeam[index] = { ...currentMember, nome: found.nome };
+                        return newTeam;
+                    });
+                });
+            }
         }
     };
     const handleSubmit = async (e) => {

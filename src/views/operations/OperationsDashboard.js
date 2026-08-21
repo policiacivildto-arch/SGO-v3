@@ -4,7 +4,7 @@ import {
     FileText, Target, BarChart, Users
 } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import policiaisData from '../../data/policiais.json';
+import { findPolicialByMatricula } from '../../constants/policiais';
 import { DEPARTMENTS } from '../../constants/data';
 
 // Importar componentes de visualização
@@ -156,11 +156,11 @@ export default function OperationsDashboard({ userData, showNotification }) {
         }
     }, [searchParams, activeView, defaultView, isDTO, isDepartamento, isPolicialOperacional]);
     
-    // Função para buscar policial por matrícula
-    const buscarPolicialPorMatricula = (matricula) => {
-        if (!matricula || matricula.length < 3) return null;
-        const policial = policiaisData.find(p => p.matricula === matricula.trim());
-        return policial ? policial.nome : null;
+    // Função para buscar policial por matrícula (consulta o roster no backend)
+    const buscarPolicialPorMatricula = async (matricula) => {
+        if (!matricula || matricula.trim().length < 3) return null;
+        const found = await findPolicialByMatricula(matricula.trim());
+        return found ? found.nome : null;
     };
     const [selectedOperationRelatorio, setSelectedOperationRelatorio] = useState(null);
     const [showSubstituicaoModal, setShowSubstituicaoModal] = useState(false);
@@ -1139,9 +1139,11 @@ export default function OperationsDashboard({ userData, showNotification }) {
                                                                             name={`policial${num}_matricula`}
                                                                             placeholder="Matrícula"
                                                                             required={num <= 3}
-                                                                            onChange={(e) => {
+                                                                            onChange={async (e) => {
                                                                                 const matricula = e.target.value;
-                                                                                const nome = buscarPolicialPorMatricula(matricula);
+                                                                                const nome = await buscarPolicialPorMatricula(matricula);
+                                                                                const matriculaInput = document.querySelector(`input[name="policial${num}_matricula"]`);
+                                                                                if (matriculaInput && matriculaInput.value !== matricula) return;
                                                                                 if (nome) {
                                                                                     const nomeInput = document.querySelector(`input[name="policial${num}_nome"]`);
                                                                                     if (nomeInput) {

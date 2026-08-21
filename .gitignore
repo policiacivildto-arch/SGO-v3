@@ -13,6 +13,8 @@
 
 # misc
 .DS_Store
+.env
+.env.production
 .env.local
 .env.development.local
 .env.test.local
@@ -25,3 +27,8 @@ yarn-error.log*
 # build logs temporarios
 build-*.log
 build-status.txt
+
+# dados pessoais do efetivo usados só para popular RosterPolicial
+# localmente/no deploy (python manage.py seed_roster --path <arquivo>);
+# nunca deve ser versionado.
+egide-backend/api/seed_data/*.json

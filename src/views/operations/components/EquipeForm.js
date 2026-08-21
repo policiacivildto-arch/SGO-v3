@@ -136,9 +136,12 @@ export function EquipeForm({
                                 type="text"
                                 name="policial1_matricula"
                                 placeholder="Matrícula"
-                                onChange={(e) => {
-                                    const found = findPolicialByMatricula(e.target.value);
+                                onChange={async (e) => {
+                                    const matricula = e.target.value;
+                                    const found = await findPolicialByMatricula(matricula);
+                                    const matriculaInput = document.querySelector('input[name="policial1_matricula"]');
                                     const nomeInput = document.querySelector('input[name="policial1_nome"]');
+                                    if (matriculaInput && matriculaInput.value !== matricula) return;
                                     if (found && nomeInput) nomeInput.value = found.nome;
                                     else if (nomeInput) nomeInput.value = '';
                                 }}
@@ -168,9 +171,12 @@ export function EquipeForm({
                                 type="text"
                                 name="policial2_matricula"
                                 placeholder="Matrícula"
-                                onChange={(e) => {
-                                    const found = findPolicialByMatricula(e.target.value);
+                                onChange={async (e) => {
+                                    const matricula = e.target.value;
+                                    const found = await findPolicialByMatricula(matricula);
+                                    const matriculaInput = document.querySelector('input[name="policial2_matricula"]');
                                     const nomeInput = document.querySelector('input[name="policial2_nome"]');
+                                    if (matriculaInput && matriculaInput.value !== matricula) return;
                                     if (found && nomeInput) nomeInput.value = found.nome;
                                     else if (nomeInput) nomeInput.value = '';
                                 }}
@@ -200,9 +206,12 @@ export function EquipeForm({
                                 type="text"
                                 name="policial3_matricula"
                                 placeholder="Matrícula"
-                                onChange={(e) => {
-                                    const found = findPolicialByMatricula(e.target.value);
+                                onChange={async (e) => {
+                                    const matricula = e.target.value;
+                                    const found = await findPolicialByMatricula(matricula);
+                                    const matriculaInput = document.querySelector('input[name="policial3_matricula"]');
                                     const nomeInput = document.querySelector('input[name="policial3_nome"]');
+                                    if (matriculaInput && matriculaInput.value !== matricula) return;
                                     if (found && nomeInput) nomeInput.value = found.nome;
                                     else if (nomeInput) nomeInput.value = '';
                                 }}
@@ -232,9 +241,12 @@ export function EquipeForm({
                                 type="text"
                                 name="policial4_matricula"
                                 placeholder="Matrícula"
-                                onChange={(e) => {
-                                    const found = findPolicialByMatricula(e.target.value);
+                                onChange={async (e) => {
+                                    const matricula = e.target.value;
+                                    const found = await findPolicialByMatricula(matricula);
+                                    const matriculaInput = document.querySelector('input[name="policial4_matricula"]');
                                     const nomeInput = document.querySelector('input[name="policial4_nome"]');
+                                    if (matriculaInput && matriculaInput.value !== matricula) return;
                                     if (found && nomeInput) nomeInput.value = found.nome;
                                     else if (nomeInput) nomeInput.value = '';
                                 }}
