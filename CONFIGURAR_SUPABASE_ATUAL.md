@@ -30,22 +30,30 @@ URL: https://supabase.com/dashboard/project/lwunytjedcwcttkujctl
    - Modo: **Transaction**
    - Copy a URL que aparece
 
-5. **Você verá DUAS URLs importantes:**
+5. **Você verá duas formas de conectar — use o pooler nas duas, não a "Direct connection" pura:**
 
-   **Connection pooling (porta 6543) - Para aplicação:**
+   **Pooler, modo transação (porta 6543) — para a aplicação em runtime:**
    ```
-   postgresql://postgres.lwunytjedcwcttkujctl:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
-   ```
-
-   **Direct connection (porta 5432) - Para migrações:**
-   ```
-   postgresql://postgres.lwunytjedcwcttkujctl:[YOUR-PASSWORD]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+   postgresql://postgres.lwunytjedcwcttkujctl:[SENHA]@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true
    ```
 
-   ⚠️ **Substitua `[YOUR-PASSWORD]` pela senha do seu banco!**
+   **Pooler, modo sessão (porta 5432) — para rodar `migrate`:**
+   ```
+   postgresql://postgres.lwunytjedcwcttkujctl:[SENHA]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+   ```
+
+   ⚠️ **Substitua `[SENHA]` pela senha do seu banco!**
    ⚠️ **Confira o host exato em Settings → Database no dashboard** —
    o padrão `aws-0-sa-east-1.pooler.supabase.com` é o esperado para a
    região São Paulo, mas o Supabase pode ajustar isso por projeto.
+   ⚠️ **Não use a "Direct connection" pura** (`db.lwunytjedcwcttkujctl.supabase.co`,
+   sem passar pelo pooler) — esse host só resolve em IPv6, e nem todo
+   ambiente (Codespaces, VPS, esta própria sessão do Claude Code) tem
+   saída IPv6. Testado em 21/08/2026: essa sessão do Claude Code não
+   conseguiu nem resolver a conexão direta (sem IPv6) nem alcançar o
+   pooler nas portas 5432/6543 — a sandbox só libera saída HTTPS. Um
+   Codespace ou VPS normal deve conseguir se conectar no pooler sem
+   esse problema.
 
 ---
 
@@ -77,11 +85,53 @@ ALLOWED_HOSTS=.onrender.com
 ```
 
 **📌 Importante:**
-- `DATABASE_URL` usa porta **6543** com pooling (melhor performance)
-- `DIRECT_URL` usa porta **5432** direta (necessária para `python manage.py migrate`)
+- `DATABASE_URL` usa porta **6543**, pooler em modo transação (melhor performance para a aplicação)
+- `DIRECT_URL` usa porta **5432**, pooler em modo sessão (necessária para `python manage.py migrate`) — apesar do nome, não é a conexão direta pura (ver aviso acima sobre IPv6)
 - **Nunca** commite esses valores no repositório — configure-os como
   variável/secret do ambiente de deploy (Render, Railway, Codespaces
   Secrets etc.), nunca em um arquivo versionado.
+
+---
+
+## 🖥️ RODAR AS MIGRATIONS A PARTIR DO CODESPACES (ou VPS)
+
+Pendência em aberto em 21/08/2026: as tabelas do Django ainda não foram
+criadas no Postgres do Supabase — só existem localmente (SQLite). Assim
+que o Codespace (ou VPS) estiver no ar, rode isto uma vez para criar o
+schema real:
+
+1. **Configure os secrets do ambiente** (Codespaces: repositório →
+   Settings → Secrets and variables → Codespaces; VPS: variável de
+   ambiente do processo):
+   ```
+   DATABASE_URL=postgresql://postgres.lwunytjedcwcttkujctl:[SENHA]@aws-0-sa-east-1.pooler.supabase.com:5432/postgres
+   USE_REMOTE_DB_IN_DEBUG=True
+   ```
+   O `USE_REMOTE_DB_IN_DEBUG=True` é necessário porque em desenvolvimento
+   (`DEBUG=True`, o padrão) o Django ignora `DATABASE_URL` e usa SQLite
+   local a menos que essa flag esteja ligada — ver `egide_backend/settings.py`.
+
+2. **Rode as migrations:**
+   ```bash
+   cd egide-backend
+   pip install -r requirements.txt
+   python manage.py migrate
+   ```
+
+3. **(Opcional) Popule o autocompletar de matrícula**, apontando para um
+   JSON com os dados do efetivo mantido **fora do git** (nunca comite
+   esse arquivo — ver `.gitignore`):
+   ```bash
+   python manage.py seed_roster --path /caminho/local/policiais.json
+   ```
+
+4. **Crie um superusuário** para acessar `/admin/`:
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+5. **Confirme:** `GET /api/` deve responder, e `django_migrations` deve
+   ter ~35 linhas (`python manage.py showmigrations`).
 
 ---
 
