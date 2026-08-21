@@ -75,6 +75,7 @@ Autenticação recomendada (próximo passo)
 Recomendações antes de produção
 - Reverter `DEFAULT_PERMISSION_CLASSES` para `IsAuthenticated` em `egide_backend/settings.py`.
 - Implementar e testar integração segura (Firebase  Django JWT) ou usar apenas Django para autenticação.
+- **Purgar `policiais.json`/`policiais_roster.json` do histórico do git** (`git filter-repo` ou BFG + force-push). Decisão consciente em 21/08/2026: adiada por ora (repo privado, só 2 colaboradores), mas deve ser feita antes do lançamento efetivo do sistema — o histórico ainda contém matrícula+nome de 4.398 policiais mesmo após os dados terem sido removidos do código em uso. Avisar todos os colaboradores para re-clonarem após a reescrita.
 
 Admin
 - URL: `http://localhost:8000/admin/`
