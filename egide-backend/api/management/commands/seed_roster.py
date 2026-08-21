@@ -4,21 +4,21 @@ from django.core.management.base import BaseCommand, CommandError
 
 from api.models import RosterPolicial
 
-DEFAULT_SEED_PATH = 'api/seed_data/policiais_roster.json'
-
 
 class Command(BaseCommand):
     help = (
         "Popula RosterPolicial (matricula/nome/cargo) a partir de um JSON no formato "
         "[{'matricula': ..., 'nome': ..., 'cargo_atual': ...}, ...]. "
-        "Usado para o autocompletar de matrícula nos formulários do frontend."
+        "Usado para o autocompletar de matrícula nos formulários do frontend. "
+        "O JSON de origem NÃO é versionado no repositório (contém dados pessoais do "
+        "efetivo) — informe o caminho local do arquivo via --path."
     )
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--path',
-            default=DEFAULT_SEED_PATH,
-            help=f'Caminho do JSON de origem (padrão: {DEFAULT_SEED_PATH}).',
+            required=True,
+            help='Caminho do JSON de origem com os dados do efetivo.',
         )
 
     def handle(self, *args, **options):
