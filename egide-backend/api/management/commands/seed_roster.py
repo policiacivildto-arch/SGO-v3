@@ -1,4 +1,5 @@
 import json
+import unicodedata
 from pathlib import Path
 
 from django.core.management.base import BaseCommand, CommandError
@@ -10,8 +11,15 @@ NOME_KEYS = ('nome', 'nome_completo', 'nome completo')
 CARGO_KEYS = ('cargo_atual', 'cargo atual', 'cargo')
 
 
+def _strip_accents(value):
+    return ''.join(
+        ch for ch in unicodedata.normalize('NFKD', value)
+        if not unicodedata.combining(ch)
+    )
+
+
 def _normalize_header(value):
-    return str(value or '').strip().lower()
+    return _strip_accents(str(value or '').strip().lower())
 
 
 def _find_column(headers, candidate_keys):
