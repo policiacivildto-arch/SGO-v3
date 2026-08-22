@@ -73,7 +73,22 @@ def _records_from_xlsx(path):
             "Renomeie as colunas para 'matricula' e 'nome' (cargo é opcional) e tente de novo."
         )
 
+    # Planilhas do Excel com validação de dados (menus suspensos) aplicada a
+    # uma coluna inteira costumam declarar uma "área usada" muito maior do
+    # que os dados reais (às vezes mais de 1 milhão de linhas). Para não
+    # ficar varrendo linhas vazias por minutos, paramos assim que
+    # encontramos uma sequência longa de linhas totalmente em branco.
+    linhas_vazias_seguidas = 0
+    limite_linhas_vazias = 200
+
     for row in rows:
+        if row is None or all(cell is None for cell in row):
+            linhas_vazias_seguidas += 1
+            if linhas_vazias_seguidas >= limite_linhas_vazias:
+                break
+            continue
+        linhas_vazias_seguidas = 0
+
         yield {
             'matricula': row[matricula_col] if matricula_col < len(row) else '',
             'nome': row[nome_col] if nome_col < len(row) else '',
