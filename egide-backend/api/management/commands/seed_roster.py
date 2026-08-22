@@ -22,6 +22,15 @@ def _normalize_header(value):
     return _strip_accents(str(value or '').strip().lower())
 
 
+def _normalize_cell_value(value):
+    # Colunas de matrícula às vezes são formatadas como número no Excel;
+    # openpyxl devolve um float (ex.: 12345678.0), que sem essa conversão
+    # viraria a string "12345678.0" — maior que o limite da coluna.
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value or '').strip()
+
+
 def _find_column(headers, candidate_keys):
     normalized = {_normalize_header(h): idx for idx, h in enumerate(headers)}
     for key in candidate_keys:
@@ -90,7 +99,7 @@ def _records_from_xlsx(path):
         linhas_vazias_seguidas = 0
 
         yield {
-            'matricula': row[matricula_col] if matricula_col < len(row) else '',
+            'matricula': _normalize_cell_value(row[matricula_col]) if matricula_col < len(row) else '',
             'nome': row[nome_col] if nome_col < len(row) else '',
             'cargo': row[cargo_col] if (cargo_col is not None and cargo_col < len(row)) else '',
         }
@@ -133,7 +142,7 @@ class Command(BaseCommand):
         ignorados = 0
 
         for item in records:
-            matricula = str(item.get('matricula') or '').strip()
+            matricula = _normalize_cell_value(item.get('matricula'))
             nome = str(item.get('nome') or '').strip()
             cargo = str(item.get('cargo') or '').strip()
 
