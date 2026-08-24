@@ -137,9 +137,12 @@ class Command(BaseCommand):
         except FileNotFoundError:
             raise CommandError(f"Arquivo não encontrado: {path}")
 
+        matricula_max_length = RosterPolicial._meta.get_field('matricula').max_length
+
         criados = 0
         atualizados = 0
         ignorados = 0
+        invalidos = []
 
         for item in records:
             matricula = _normalize_cell_value(item.get('matricula'))
@@ -148,6 +151,10 @@ class Command(BaseCommand):
 
             if not matricula or not nome:
                 ignorados += 1
+                continue
+
+            if len(matricula) > matricula_max_length:
+                invalidos.append((matricula, nome))
                 continue
 
             _, created = RosterPolicial.objects.update_or_create(
@@ -159,7 +166,18 @@ class Command(BaseCommand):
             else:
                 atualizados += 1
 
+        if invalidos:
+            self.stdout.write(self.style.WARNING(
+                f"{len(invalidos)} registro(s) com matrícula maior que "
+                f"{matricula_max_length} caracteres foram ignorados:"
+            ))
+            for matricula, nome in invalidos[:10]:
+                self.stdout.write(f"  - {matricula!r} ({nome})")
+            if len(invalidos) > 10:
+                self.stdout.write(f"  ... e mais {len(invalidos) - 10}.")
+
         self.stdout.write(self.style.SUCCESS(
             f"Roster atualizado: {criados} criados, {atualizados} atualizados, "
-            f"{ignorados} ignorados (sem matrícula/nome)."
+            f"{ignorados} ignorados (sem matrícula/nome), "
+            f"{len(invalidos)} ignorados (matrícula inválida)."
         ))
