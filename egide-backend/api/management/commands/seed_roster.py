@@ -64,7 +64,16 @@ def _records_from_xlsx(path):
 
     workbook = load_workbook(filename=path, read_only=True, data_only=True)
     sheet = workbook.active
-    rows = sheet.iter_rows(values_only=True)
+
+    # Planilhas do Excel com validação de dados (menus suspensos) aplicada a
+    # uma coluna inteira costumam declarar uma "área usada" muito maior do
+    # que os dados reais (às vezes mais de 1 milhão de linhas), e essas
+    # células "vazias" nem sempre vêm como None (às vezes vêm como string
+    # vazia). Para garantir que a leitura termine rápido de qualquer jeito,
+    # limitamos o número máximo de linhas lidas, bem acima do que qualquer
+    # planilha de efetivo real deveria ter.
+    max_linhas = 50_000
+    rows = sheet.iter_rows(min_row=1, max_row=max_linhas + 1, values_only=True)
 
     try:
         headers = next(rows)
@@ -82,16 +91,14 @@ def _records_from_xlsx(path):
             "Renomeie as colunas para 'matricula' e 'nome' (cargo é opcional) e tente de novo."
         )
 
-    # Planilhas do Excel com validação de dados (menus suspensos) aplicada a
-    # uma coluna inteira costumam declarar uma "área usada" muito maior do
-    # que os dados reais (às vezes mais de 1 milhão de linhas). Para não
-    # ficar varrendo linhas vazias por minutos, paramos assim que
-    # encontramos uma sequência longa de linhas totalmente em branco.
+    def _cell_vazia(cell):
+        return cell is None or (isinstance(cell, str) and not cell.strip())
+
     linhas_vazias_seguidas = 0
     limite_linhas_vazias = 200
 
     for row in rows:
-        if row is None or all(cell is None for cell in row):
+        if row is None or all(_cell_vazia(cell) for cell in row):
             linhas_vazias_seguidas += 1
             if linhas_vazias_seguidas >= limite_linhas_vazias:
                 break
